@@ -1,0 +1,1140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Thermo Fisher AI Reasoning Prototype</title>
+    <style>
+      :root {
+        --tf-red: #d71920;
+        --tf-link: #1261a0;
+        --text: #222;
+        --muted: #666;
+        --line: #d9d9d9;
+        --soft: #f5f5f5;
+        --panel: #fafafa;
+        --white: #fff;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        color: var(--text);
+        background: var(--soft);
+      }
+
+      @keyframes pulseDot {
+        0%,
+        80%,
+        100% {
+          opacity: 0.25;
+          transform: translateY(0);
+        }
+        40% {
+          opacity: 1;
+          transform: translateY(-2px);
+        }
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+
+      @keyframes fadeSlide {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .fade-slide {
+        animation: fadeSlide 0.35s ease-out;
+      }
+      .reasoning-fade-out {
+        opacity: 0;
+        transform: translateY(4px);
+        transition:
+          opacity 0.18s ease,
+          transform 0.18s ease;
+      }
+      .dot {
+        animation: pulseDot 1.2s infinite;
+      }
+      .dot:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .dot:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+      .shimmer {
+        background: linear-gradient(
+          90deg,
+          #f5f5f5 25%,
+          #ececec 37%,
+          #f5f5f5 63%
+        );
+        background-size: 400% 100%;
+        animation: shimmer 2s infinite linear;
+        border-radius: 6px;
+        height: 16px;
+      }
+
+      .site-header {
+        background: var(--white);
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      .shell {
+        max-width: 1440px;
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+
+      .utility,
+      .main-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .utility {
+        height: 32px;
+        font-size: 12px;
+        color: #555;
+      }
+
+      .utility-left,
+      .top-actions,
+      .main-nav {
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+
+      .brand-row {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 16px 0;
+      }
+
+      .brand {
+        background: var(--tf-red);
+        color: white;
+        font-size: 22px;
+        font-weight: 700;
+        padding: 10px 16px;
+        border-radius: 2px;
+      }
+
+      .search {
+        flex: 1;
+        height: 44px;
+        border: 1px solid #cfcfcf;
+        border-radius: 2px;
+        background: white;
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        color: #777;
+        font-size: 14px;
+      }
+
+      .main-nav {
+        height: 44px;
+        border-top: 1px solid #ededed;
+        justify-content: flex-start;
+        font-size: 14px;
+        color: #333;
+        gap: 24px;
+      }
+
+      main.shell {
+        padding-top: 24px;
+        padding-bottom: 24px;
+      }
+
+      .breadcrumb {
+        color: var(--tf-link);
+        font-size: 12px;
+        margin-bottom: 16px;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        gap: 24px;
+        align-items: start;
+      }
+
+      .pdp {
+        background: white;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .section-border {
+        border-bottom: 1px solid #ececec;
+      }
+      .pdp-pad {
+        padding: 20px 24px;
+      }
+      .title-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 24px;
+        align-items: flex-start;
+      }
+
+      .eyebrow {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #6a6a6a;
+        margin-bottom: 8px;
+      }
+
+      h1 {
+        font-size: 29px;
+        line-height: 1.15;
+        margin: 0;
+        max-width: 760px;
+      }
+
+      .meta-row {
+        margin-top: 12px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 24px;
+        color: #555;
+        font-size: 14px;
+      }
+
+      .meta-row strong,
+      .catalog strong,
+      .tab-active,
+      .answer strong,
+      .saved-item-title,
+      .reasoning-title {
+        color: #222;
+      }
+
+      .catalog {
+        min-width: 130px;
+        text-align: right;
+      }
+
+      .catalog-label {
+        font-size: 12px;
+        color: #777;
+      }
+
+      .catalog-number {
+        font-size: 18px;
+        font-weight: 700;
+        margin-top: 4px;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 360px 1fr;
+        gap: 24px;
+        padding: 24px;
+        border-bottom: 1px solid #ececec;
+      }
+
+      .image-frame {
+        aspect-ratio: 1 / 1;
+        border: 1px solid var(--line);
+        position: relative;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      .image-label {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        font-size: 11px;
+        background: #f5f5f5;
+        border: 1px solid var(--line);
+        padding: 4px 8px;
+        border-radius: 2px;
+        color: #555;
+      }
+
+      .bottle {
+        width: 220px;
+        height: 260px;
+        border-radius: 20px;
+        border: 10px solid #f1f1f1;
+        background: linear-gradient(to bottom, #fafafa, #e9e9e9);
+        box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.02);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .bottle-fill {
+        width: 64px;
+        height: 160px;
+        border-radius: 999px;
+        background: #a83232;
+        opacity: 0.9;
+      }
+
+      .thumbs {
+        display: flex;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .thumb {
+        width: 64px;
+        height: 64px;
+        border: 1px solid var(--line);
+        background: #fafafa;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+
+      .card-head {
+        background: #fafafa;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e9e9e9;
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        padding: 12px 16px;
+        text-align: left;
+      }
+
+      thead {
+        color: #666;
+        border-bottom: 1px solid #ececec;
+      }
+
+      tbody tr + tr {
+        border-top: 1px solid #efefef;
+      }
+      .selected-row {
+        background: #fff8f8;
+        border-left: 3px solid var(--tf-red);
+      }
+
+      .linkish {
+        color: var(--tf-link);
+      }
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        font-size: 14px;
+        color: #444;
+      }
+
+      .detail-tile,
+      .related-box,
+      .related-item,
+      .attribute-card {
+        border: 1px solid #e3e3e3;
+        background: white;
+      }
+
+      .detail-tile,
+      .related-box {
+        padding: 16px;
+      }
+      .detail-tile strong,
+      .related-box strong,
+      .attribute-head {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 32px;
+        font-size: 15px;
+        border-bottom: 1px solid #e9e9e9;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+      }
+
+      .tab-active {
+        font-weight: 700;
+        border-bottom: 2px solid var(--tf-red);
+        padding-bottom: 12px;
+        margin-bottom: -13px;
+      }
+
+      .content-grid {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 24px;
+      }
+
+      .body-copy {
+        font-size: 14px;
+        line-height: 1.7;
+        color: #444;
+      }
+
+      .attribute-card {
+        overflow: hidden;
+      }
+      .attribute-head {
+        background: #fafafa;
+        padding: 12px 16px;
+        border-bottom: 1px solid #ededed;
+        font-size: 14px;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .attribute-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        font-size: 13px;
+      }
+
+      .attribute-key,
+      .attribute-value {
+        padding: 12px 16px;
+        border-bottom: 1px solid #efefef;
+      }
+
+      .attribute-key {
+        background: #fcfcfc;
+        border-right: 1px solid #efefef;
+        font-weight: 600;
+        color: #555;
+      }
+
+      .related-box {
+        background: #fcfcfc;
+      }
+
+      .related-item + .related-item {
+        margin-top: 12px;
+      }
+      .related-item {
+        padding: 12px;
+        border-color: #ececec;
+      }
+
+      .assistant-wrap {
+        position: sticky;
+        top: 148px;
+      }
+
+      .assistant {
+        background: white;
+        border: 1px solid #d7d7d7;
+        border-radius: 22px;
+        overflow: hidden;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+      }
+
+      .assistant-head {
+        padding: 16px 20px;
+        border-bottom: 1px solid #ededed;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .assistant-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .spark {
+        width: 26px;
+        height: 26px;
+        border-radius: 999px;
+        background: var(--tf-red);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .assistant-title {
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .close {
+        font-size: 24px;
+        color: #444;
+      }
+
+      .question {
+        padding: 16px;
+        background: #fafafa;
+        border-bottom: 1px solid #ededed;
+        font-size: 14px;
+        color: #4c4c4c;
+        line-height: 1.7;
+      }
+
+      .conversation {
+        max-height: 840px;
+        overflow-y: auto;
+        padding: 20px;
+      }
+
+      .reasoning {
+        min-height: 220px;
+      }
+
+      .reasoning-row {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+
+      .reasoning-icon {
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        border: 2px solid #e5e5e5;
+        border-top: 2px solid var(--tf-red);
+        animation: spin 0.8s linear infinite;
+        flex: 0 0 auto;
+        margin-top: 4px;
+      }
+
+      .reasoning-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+
+      .reasoning-title {
+        font-size: 15px;
+        font-weight: 700;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .status.red {
+        color: #8b3b3f;
+      }
+      .status.blue {
+        color: #47627d;
+      }
+      .status.gray {
+        color: #8d4d50;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        display: inline-block;
+      }
+
+      .status.red .status-dot {
+        background: var(--tf-red);
+      }
+      .status.blue .status-dot {
+        background: var(--tf-link);
+      }
+
+      .reasoning-text,
+      .saved-list {
+        margin: 0;
+        padding-left: 0;
+        color: #666;
+        font-size: 14px;
+        line-height: 1.7;
+        list-style: none;
+      }
+
+      .saved-list li {
+        margin-left: 0;
+        padding-left: 0;
+      }
+
+      .reasoning-text {
+        padding-left: 0;
+      }
+
+      .response-card {
+        border: 1px solid #d9dde3;
+        border-radius: 4px;
+        background: #fff;
+        overflow: hidden;
+      }
+
+      .response-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e6e8eb;
+        background: #fff;
+      }
+
+      .response-card-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #222;
+      }
+
+      .response-card-toggle {
+        font-size: 28px;
+        line-height: 1;
+        color: #6b7280;
+        background: transparent;
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        font-family: inherit;
+      }
+
+      .response-card-toggle:focus-visible {
+        outline: 2px solid var(--tf-link);
+        outline-offset: 2px;
+      }
+
+      .response-card-body {
+        padding: 18px 24px 20px;
+        display: grid;
+        gap: 18px;
+      }
+
+      .response-item {
+        display: flex;
+        gap: 18px;
+        align-items: flex-start;
+      }
+
+      .response-dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: #a6a8b3;
+        margin-top: 2px;
+        flex: 0 0 auto;
+      }
+
+      .response-copy {
+        min-width: 0;
+      }
+
+      .response-item-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: #2a2a2a;
+        margin-bottom: 4px;
+      }
+
+      .response-item-text {
+        font-size: 14px;
+        line-height: 1.6;
+        color: #6b7280;
+      }
+
+      .answer-block {
+        margin-top: 32px;
+      }
+
+      .answer-title {
+        font-size: 18px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        color: #2a2a2a;
+      }
+
+      .answer {
+        font-size: 14px;
+        color: #4a4a4a;
+        line-height: 2;
+      }
+
+      .composer {
+        padding: 16px;
+        border-top: 1px solid #ededed;
+        background: white;
+      }
+
+      .composer-inner {
+        height: 56px;
+        border-radius: 999px;
+        border: 1px solid #d7d7d7;
+        background: #fafafa;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        color: #9a9a9a;
+        font-size: 16px;
+      }
+
+      .send {
+        width: 40px;
+        height: 40px;
+        border-radius: 999px;
+        background: #ef6b72;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+      }
+
+      @media (max-width: 1180px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .assistant-wrap {
+          position: static;
+        }
+      }
+
+      @media (max-width: 800px) {
+        .hero-grid,
+        .content-grid {
+          grid-template-columns: 1fr;
+        }
+        .title-row,
+        .reasoning-head {
+          flex-direction: column;
+        }
+        .catalog {
+          text-align: left;
+        }
+        .shell {
+          padding: 0 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="shell">
+        <div class="utility">
+          <div class="utility-left">
+            <span>Order Status</span>
+            <span>Quick Order</span>
+            <span>Sign In</span>
+          </div>
+          <div>United States</div>
+        </div>
+        <div class="brand-row">
+          <div class="brand">ThermoFisher</div>
+          <div class="search">
+            Search by catalog number, product name, keyword, application...
+          </div>
+          <div class="top-actions">
+            <span>Support</span>
+            <span>Cart</span>
+          </div>
+        </div>
+        <div class="main-nav">
+          <span>Products</span>
+          <span>Services</span>
+          <span>Applications</span>
+          <span>Resources</span>
+          <span>Special Offers</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <div class="breadcrumb">
+        Home / Antibodies / Primary Antibodies / Western Blot Antibodies
+      </div>
+
+      <div class="layout">
+        <section class="pdp">
+          <div class="pdp-pad section-border">
+            <div class="title-row">
+              <div>
+                <div class="eyebrow">Antibody Product Page</div>
+                <h1>β-Actin Monoclonal Antibody (BA3R), HRP, Invitrogen™</h1>
+                <div class="meta-row">
+                  <span><strong>Clone:</strong> BA3R</span>
+                  <span><strong>Applications:</strong> WB</span>
+                  <span><strong>Host/Isotype:</strong> Mouse / IgG2a</span>
+                  <span><strong>Reactivity:</strong> Human, Mouse, Rat</span>
+                  <span><strong>Conjugate:</strong> HRP</span>
+                </div>
+              </div>
+              <div class="catalog">
+                <div class="catalog-label">Catalog #</div>
+                <div class="catalog-number">MA5-15717-HRP</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-grid">
+            <div>
+              <div class="image-frame">
+                <div class="image-label">Product Image</div>
+                <div class="bottle"><div class="bottle-fill"></div></div>
+              </div>
+              <div class="thumbs">
+                <div class="thumb"></div>
+                <div class="thumb"></div>
+                <div class="thumb"></div>
+                <div class="thumb"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card">
+                <div class="card-head">Available formats</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Catalog #</th>
+                      <th>Applications</th>
+                      <th>Conjugate</th>
+                      <th>Size</th>
+                      <th>Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="selected-row">
+                      <td class="linkish"><strong>MA5-15717-HRP</strong></td>
+                      <td>WB</td>
+                      <td>HRP</td>
+                      <td>100 µL</td>
+                      <td>$421.00</td>
+                    </tr>
+                    <tr>
+                      <td class="linkish">MA5-15717</td>
+                      <td>WB, IHC</td>
+                      <td>Unconjugated</td>
+                      <td>100 µg</td>
+                      <td>$389.00</td>
+                    </tr>
+                    <tr>
+                      <td class="linkish">A24874</td>
+                      <td>WB</td>
+                      <td>Biotin</td>
+                      <td>100 µL</td>
+                      <td>$436.00</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="detail-grid">
+                <div class="detail-tile">
+                  <strong>Product Details</strong>
+                  Validated for western blot detection of β-Actin in cell
+                  lysates.
+                </div>
+                <div class="detail-tile">
+                  <strong>Storage</strong>
+                  Store at 2–8°C. Do not freeze.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pdp-pad">
+            <div class="tabs">
+              <span class="tab-active">Description</span>
+              <span>Properties</span>
+              <span>Figures</span>
+              <span>Documents</span>
+              <span>References</span>
+            </div>
+
+            <div class="content-grid">
+              <div>
+                <h2 style="font-size: 18px; margin: 0 0 12px 0">
+                  Product specific information
+                </h2>
+                <p class="body-copy">
+                  This prototype demonstrates an antibody PDP with a persistent
+                  AI assistant experience. Each reasoning line appears only
+                  while the assistant is actively working on that step, then
+                  disappears from the live panel once the next step begins.
+                </p>
+                <div class="attribute-card">
+                  <div class="attribute-head">Structured attributes</div>
+                  <div class="attribute-grid">
+                    <div class="attribute-key">Target</div>
+                    <div class="attribute-value">β-Actin</div>
+                    <div class="attribute-key">Gene ID</div>
+                    <div class="attribute-value">60</div>
+                    <div class="attribute-key">Immunogen</div>
+                    <div class="attribute-value">Synthetic peptide</div>
+                    <div class="attribute-key">Purification</div>
+                    <div class="attribute-value">Protein A</div>
+                    <div class="attribute-key">Form</div>
+                    <div class="attribute-value">Liquid</div>
+                    <div class="attribute-key">Research category</div>
+                    <div class="attribute-value">Loading Controls</div>
+                    <div class="attribute-key">For Research Use Only</div>
+                    <div class="attribute-value">Yes</div>
+                    <div class="attribute-key">Regulatory status</div>
+                    <div class="attribute-value">RUO</div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="related-box">
+                  <strong style="font-size: 16px">Related reagents</strong>
+                  <div class="related-item">
+                    Goat anti-Mouse IgG (H+L) Secondary Antibody, Alexa Fluor™
+                    488
+                  </div>
+                  <div class="related-item">
+                    Goat anti-Mouse IgG (H+L) Secondary Antibody, HRP
+                  </div>
+                  <div class="related-item">
+                    WesternBreeze™ Chemiluminescent Detection Kit
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="assistant-wrap">
+          <div class="assistant">
+            <div class="assistant-head">
+              <div class="assistant-brand">
+                <div class="spark">✦</div>
+                <div class="assistant-title">Ask our AI assistant</div>
+              </div>
+              <div class="close">×</div>
+            </div>
+
+            <div class="question">
+              <strong>Question:</strong> What secondary antibodies for western
+              blot are compatible with β-Actin antibody MA5-15717?
+            </div>
+
+            <div class="conversation">
+              <div class="reasoning" id="reasoningArea"></div>
+
+              <div class="answer-block" id="answerBlock"></div>
+            </div>
+
+            <div class="composer">
+              <div class="composer-inner">
+                <span>Ask me anything</span>
+                <div class="send">↑</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </main>
+
+    <script>
+      const liveSteps = [
+        {
+          id: "understand",
+          title: "Understanding your request and planning approach",
+          bullets: [
+            "Reviewing your request and planning the best way to help.",
+            "Verifying request details and access permissions.",
+            "Reviewing earlier messages for useful context.",
+          ],
+        },
+        {
+          id: "plan",
+          title: "Creating agentic plan",
+          bullets: [
+            "Finding the best agent to help with your request.",
+            "Identified best agent, developing agentic question",
+            "Question 1: What are the secondary antibodies for western blot compatible with antibody MA5-12571?: Primary agent: product-information",
+          ],
+        },
+        {
+          id: "process",
+          title: "Agent processing through relevant data and research",
+          bullets: [
+            "Reviewing product page information",
+            "Reviewing documents",
+            "Reviewing citations",
+            "Information sources used for response: Product page link, Document link",
+          ],
+        },
+        {
+          id: "answer",
+          title: "Putting together an answer",
+          bullets: ["Constructing answer", "Thinking of next steps"],
+        },
+      ];
+
+      const reasoningHighlights = [
+        {
+          title: "Creating agentic plan",
+          text: "Question 1: What are the secondary antibodies for western blot compatible with antibody MA5-12571? Primary agent: product-information",
+        },
+        {
+          title: "Agent processing through relevant data and research",
+          text: "Information sources used for response: Product page, Document",
+        },
+      ];
+
+      const reasoningArea = document.getElementById("reasoningArea");
+      const answerBlock = document.getElementById("answerBlock");
+      let stepIndex = 0;
+      let bulletIndex = 0;
+      let showResponseDetails = false;
+
+      function renderResponseDetails() {
+        reasoningArea.innerHTML = `
+          <div class="fade-slide response-card">
+            <div class="response-card-head">
+              <div class="response-card-title">Response details</div>
+              <button class="response-card-toggle" id="responseDetailsToggle" type="button" aria-expanded="${showResponseDetails}">${showResponseDetails ? "−" : "+"}</button>
+            </div>
+            <div class="response-card-body" id="responseDetailsBody" style="display:${showResponseDetails ? "grid" : "none"};">
+              ${reasoningHighlights
+                .map(
+                  (item) => `
+                    <div class="response-item">
+                      <div class="response-dot"></div>
+                      <div class="response-copy">
+                        <div class="response-item-title">${item.title}</div>
+                        <div class="response-item-text">${item.text}</div>
+                      </div>
+                    </div>`,
+                )
+                .join("")}
+            </div>
+          </div>`;
+
+        const toggle = document.getElementById("responseDetailsToggle");
+        if (toggle) {
+          toggle.addEventListener("click", () => {
+            showResponseDetails = !showResponseDetails;
+            renderResponseDetails();
+          });
+        }
+      }
+
+      function renderReasoning() {
+        if (stepIndex >= liveSteps.length) {
+          renderResponseDetails();
+          return;
+        }
+
+        const step = liveSteps[stepIndex];
+        const activeBullet = step.bullets[bulletIndex];
+        reasoningArea.innerHTML = `
+          <div class="fade-slide reasoning-row">
+            <div class="reasoning-icon"></div>
+            <div style="width:100%;">
+              <div class="reasoning-head">
+                <div class="reasoning-title">${step.title}</div>
+              </div>
+              <div class="reasoning-text">${activeBullet}</div>
+            </div>
+          </div>`;
+      }
+
+      function renderAnswer(isComplete) {
+        if (!isComplete) {
+          answerBlock.innerHTML = "";
+          return;
+        }
+
+        answerBlock.innerHTML = `
+          <div class="answer-title">Assistant answer</div>
+          <div class="fade-slide answer">
+            <p>
+              For <strong>MA5-15717</strong> in an unconjugated format, the most compatible western blot secondaries are <strong>anti-mouse IgG (H+L)</strong> reagents validated for WB. If the user is using the <strong>HRP-conjugated variant</strong>, a separate HRP secondary may not be needed because the primary already carries the detection enzyme.
+            </p>
+            <div><strong>Recommended secondary types:</strong> Goat anti-Mouse IgG (H+L), HRP • Goat anti-Mouse IgG (H+L), Alexa Fluor™ 488 • Highly cross-adsorbed anti-Mouse IgG for lower background</div>
+            <div style="margin-top:10px;"><strong>Why this matters:</strong> Host species matching, conjugate compatibility, and western blot validation drive the recommendation.</div>
+          </div>`;
+      }
+
+      function tick() {
+        const done = stepIndex >= liveSteps.length;
+        renderReasoning();
+        renderAnswer(done);
+        if (done) return;
+
+        const activeStep = liveSteps[stepIndex];
+        const isLastBulletInStep = bulletIndex >= activeStep.bullets.length - 1;
+        const reasoningRow = reasoningArea.querySelector(".reasoning-row");
+
+        setTimeout(() => {
+          if (reasoningRow) {
+            reasoningRow.classList.add("reasoning-fade-out");
+          }
+
+          setTimeout(() => {
+            if (isLastBulletInStep) {
+              stepIndex += 1;
+              bulletIndex = 0;
+            } else {
+              bulletIndex += 1;
+            }
+            tick();
+          }, 180);
+        }, 900);
+      }
+
+      tick();
+    </script>
+  </body>
+</html>
